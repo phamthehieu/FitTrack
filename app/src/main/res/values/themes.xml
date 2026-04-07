@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- AppCompat required because MainActivity extends AppCompatActivity (for per-app language switching). -->
+    <style name="Theme.FitTrack" parent="Theme.AppCompat.DayNight.NoActionBar" />
+</resources>

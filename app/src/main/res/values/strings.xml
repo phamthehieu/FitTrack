@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">FitTrack</string>
+
+    <!-- Auth / Login -->
+    <string name="login_title">Welcome back</string>
+    <string name="login_subtitle">Fuel your body. Own your shape.</string>
+    <string name="login_email_label">Email Address</string>
+    <string name="login_email_placeholder">Enter your email address</string>
+    <string name="login_password_label">Password</string>
+    <string name="login_password_placeholder">Enter your password</string>
+    <string name="login_forgot_password">Forgot Password?</string>
+    <string name="login_button">Log In</string>
+    <string name="login_toggle_theme">Toggle theme</string>
+    <string name="login_toggle_language">Switch language</string>
+    <string name="login_toggle_password_show">Show password</string>
+    <string name="login_toggle_password_hide">Hide password</string>
+    <string name="login_footer_no_account">Don’t have an account?</string>
+    <string name="login_footer_sign_up">Sign Up</string>
+
+    <!-- Home -->
+    <string name="home_title">Home Screen</string>
+    <string name="home_theme_label">Theme: %1$s</string>
+    <string name="home_theme_system">System</string>
+    <string name="home_theme_light">Light mode</string>
+    <string name="home_theme_dark">Dark mode</string>
+    <string name="home_logout">Log out</string>
+
+    <!-- Register -->
+    <string name="register_title">Register</string>
+    <string name="register_back_to_login">Back to login</string>
+</resources>

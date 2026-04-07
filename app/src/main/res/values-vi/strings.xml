@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">FitTrack</string>
+
+    <!-- Auth / Login -->
+    <string name="login_title">Chào mừng trở lại</string>
+    <string name="login_subtitle">Tiếp tục hành trình vận động của bạn.</string>
+    <string name="login_email_label">Email</string>
+    <string name="login_email_placeholder">Nhập địa chỉ email</string>
+    <string name="login_password_label">Mật khẩu</string>
+    <string name="login_password_placeholder">Nhập mật khẩu</string>
+    <string name="login_forgot_password">Quên mật khẩu?</string>
+    <string name="login_button">Đăng nhập</string>
+    <string name="login_toggle_theme">Đổi giao diện</string>
+    <string name="login_toggle_language">Đổi ngôn ngữ</string>
+    <string name="login_toggle_password_show">Hiện mật khẩu</string>
+    <string name="login_toggle_password_hide">Ẩn mật khẩu</string>
+    <string name="login_footer_no_account">Chưa có tài khoản?</string>
+    <string name="login_footer_sign_up">Đăng ký</string>
+
+    <!-- Home -->
+    <string name="home_title">Màn hình chính</string>
+    <string name="home_theme_label">Giao diện: %1$s</string>
+    <string name="home_theme_system">Theo hệ thống</string>
+    <string name="home_theme_light">Chế độ sáng</string>
+    <string name="home_theme_dark">Chế độ tối</string>
+    <string name="home_logout">Đăng xuất</string>
+
+    <!-- Register -->
+    <string name="register_title">Đăng ký</string>
+    <string name="register_back_to_login">Quay lại đăng nhập</string>
+</resources>
