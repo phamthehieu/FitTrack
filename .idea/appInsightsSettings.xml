@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.example.fittrack" />
+                  <option name="mobileSdkAppId" value="1:524197679381:android:333ffb2a8884c307b9191c" />
+                  <option name="projectId" value="fittrack-e6df5" />
+                  <option name="projectNumber" value="524197679381" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

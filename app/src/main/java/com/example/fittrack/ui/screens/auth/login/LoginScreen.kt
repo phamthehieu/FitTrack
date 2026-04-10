@@ -12,17 +12,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.Brightness7
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
@@ -33,16 +34,19 @@ import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +59,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -69,32 +74,208 @@ import com.example.fittrack.ui.theme.FitCtaGradientEnd
 import com.example.fittrack.ui.theme.FitCtaGradientMid
 import androidx.compose.ui.res.stringResource
 import com.example.fittrack.R
-import com.example.fittrack.ui.components.inputs.LabeledOutlinedTextField
+import com.example.fittrack.ui.components.inputs.EmailDomainField
 import com.example.fittrack.ui.theme.FitCtaGradientStart
 import com.example.fittrack.ui.theme.FitTrackTheme
 import com.example.fittrack.ui.theme.FitTrackExtras
 import com.example.fittrack.ui.theme.ThemeMode
+import com.example.fittrack.data.security.SecureAuthStorage
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import android.widget.Toast
+
+private fun firebaseAuthErrorToViMessage(e: Exception): String {
+    val code = (e as? FirebaseAuthException)?.errorCode
+
+    val message = when (code) {
+        // Common sign-in failures
+        "ERROR_INVALID_EMAIL" ->
+            "Email không hợp lệ. Vui lòng kiểm tra lại định dạng email."
+        "ERROR_USER_NOT_FOUND" ->
+            "Không tìm thấy tài khoản với email này."
+        "ERROR_WRONG_PASSWORD" ->
+            "Mật khẩu không đúng. Vui lòng thử lại."
+        "ERROR_INVALID_CREDENTIAL" ->
+            "Thông tin đăng nhập không hợp lệ hoặc đã hết hạn. Thường là do email/mật khẩu sai, hoặc mật khẩu đã thay đổi. Vui lòng nhập lại."
+        "ERROR_USER_DISABLED" ->
+            "Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ hỗ trợ."
+        "ERROR_TOO_MANY_REQUESTS" ->
+            "Bạn thao tác quá nhiều lần. Vui lòng đợi một chút rồi thử lại."
+        "ERROR_NETWORK_REQUEST_FAILED" ->
+            "Lỗi kết nối mạng. Vui lòng kiểm tra Internet và thử lại."
+        else -> null
+    }
+
+    val fallback = e.message?.takeIf { it.isNotBlank() } ?: "Đăng nhập thất bại. Vui lòng thử lại."
+    val normalized = message ?: fallback
+
+    // Giữ mã lỗi để dễ debug (nếu có)
+    return if (!code.isNullOrBlank()) "$normalized (Mã lỗi: $code)" else normalized
+}
 
 @Composable
 fun LoginScreen(
     currentThemeMode: ThemeMode = ThemeMode.SYSTEM,
     onToggleTheme: () -> Unit = {},
     onToggleLanguage: () -> Unit = {},
+    onLoginSuccess: () -> Unit = {},
+    onNavigateToRegister: () -> Unit = {},
+    prefillEmail: String = "",
 ) {
     val scope = rememberCoroutineScope()
     var showTransitionOverlay by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val secureAuthStorage = remember(context) { SecureAuthStorage(context) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        var email by remember { mutableStateOf("") }
+        var email by remember { mutableStateOf(prefillEmail) }
         var password by remember { mutableStateOf("") }
         var showPassword by remember { mutableStateOf(false) }
         val passwordFocusRequester = remember { FocusRequester() }
+        var isLoading by remember { mutableStateOf(false) }
+        var errorMessage by remember { mutableStateOf<String?>(null) }
+        var showResendVerify by remember { mutableStateOf(false) }
+        var showVerifyResendDialog by remember { mutableStateOf(false) }
+        var verifyDialogEmail by remember { mutableStateOf("") }
+        var autoLoginAttempted by remember { mutableStateOf(false) }
+        var showLongMessageDialog by remember { mutableStateOf(false) }
+        var longMessageDialogText by remember { mutableStateOf("") }
+
+        LaunchedEffect(errorMessage) {
+            val msg = errorMessage ?: return@LaunchedEffect
+            // Toast bị giới hạn độ dài; message dài thì hiển thị dialog để đọc hết.
+            if (msg.length > 90) {
+                longMessageDialogText = msg
+                showLongMessageDialog = true
+            } else {
+                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+            }
+            errorMessage = null
+        }
+
+        LaunchedEffect(prefillEmail) {
+            if (prefillEmail.isNotBlank()) {
+                email = prefillEmail
+            }
+        }
+
+        LaunchedEffect(Unit) {
+            if (autoLoginAttempted) return@LaunchedEffect
+            autoLoginAttempted = true
+
+            val auth = FirebaseAuth.getInstance()
+            val currentUser = auth.currentUser
+            if (currentUser != null && currentUser.isEmailVerified) {
+                onLoginSuccess()
+                return@LaunchedEffect
+            }
+
+            val creds = secureAuthStorage.getCredentials() ?: return@LaunchedEffect
+            val (savedEmail, savedPassword) = creds
+            email = savedEmail
+            password = savedPassword
+
+            isLoading = true
+            errorMessage = null
+            showResendVerify = false
+
+            try {
+                val result = auth.signInWithEmailAndPassword(savedEmail, savedPassword).await()
+                val user = result.user
+                if (user == null) {
+                    secureAuthStorage.clearCredentials()
+                    errorMessage = "Đăng nhập thất bại. Vui lòng thử lại."
+                } else if (!user.isEmailVerified) {
+                    errorMessage = "Email chưa được xác minh. Vui lòng kiểm tra Gmail để xác minh trước khi đăng nhập."
+                    showResendVerify = true
+                    verifyDialogEmail = savedEmail
+                    showVerifyResendDialog = true
+                } else {
+                    onLoginSuccess()
+                }
+            } catch (e: Exception) {
+                secureAuthStorage.clearCredentials()
+                errorMessage = firebaseAuthErrorToViMessage(e)
+            } finally {
+                isLoading = false
+            }
+        }
+
+        if (showVerifyResendDialog) {
+            AlertDialog(
+                onDismissRequest = { showVerifyResendDialog = false },
+                title = { Text(text = "Gửi lại email xác minh") },
+                text = {
+                    val target = verifyDialogEmail.ifBlank { email.trim() }
+                    Text(text = "Tài khoản $target chưa được xác minh hoặc link xác minh đã hết hạn. Bạn muốn gửi lại email xác minh không?")
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = !isLoading,
+                        onClick = {
+                            scope.launch {
+                                isLoading = true
+                                try {
+                                    val auth = FirebaseAuth.getInstance()
+                                    val currentUser = auth.currentUser
+                                    if (currentUser == null) {
+                                        errorMessage = "Vui lòng đăng nhập lại để gửi email xác minh."
+                                    } else {
+                                        currentUser.sendEmailVerification().await()
+                                        errorMessage = "Đã gửi lại link xác minh. Vui lòng kiểm tra email."
+                                        showResendVerify = false
+                                        showVerifyResendDialog = false
+                                    }
+                                } catch (e: Exception) {
+                                    errorMessage = firebaseAuthErrorToViMessage(e)
+                                } finally {
+                                    isLoading = false
+                                }
+                            }
+                        },
+                    ) {
+                        Text("Gửi lại")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showVerifyResendDialog = false },
+                    ) {
+                        Text("Để sau")
+                    }
+                },
+            )
+        }
+
+        if (showLongMessageDialog) {
+            val scrollState = rememberScrollState()
+            AlertDialog(
+                onDismissRequest = { showLongMessageDialog = false },
+                title = { Text(text = "Thông báo") },
+                text = {
+                    SelectionContainer {
+                        Text(
+                            text = longMessageDialogText,
+                            modifier = Modifier.verticalScroll(scrollState),
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = { showLongMessageDialog = false },
+                    ) {
+                        Text("Đóng")
+                    }
+                },
+            )
+        }
 
        Column(
            modifier = Modifier
@@ -136,6 +317,7 @@ fun LoginScreen(
                            tint = colorScheme.primary,
                        )
                    }
+
                    IconButton(
                        onClick = {
                            showTransitionOverlay = true
@@ -168,16 +350,33 @@ fun LoginScreen(
 
            Spacer(modifier = Modifier.height(32.dp))
 
-           LabeledOutlinedTextField(
+           if (showResendVerify) {
+               Text(
+                   text = "Email chưa được xác minh. Bạn có thể gửi lại link xác minh.",
+                   color = extras.textMuted,
+                   fontSize = 13.sp,
+                   lineHeight = 18.sp,
+               )
+               Spacer(Modifier.height(8.dp))
+               Text(
+                   text = "Gửi lại link xác minh",
+                   color = colorScheme.primary,
+                   fontSize = 13.sp,
+                   fontWeight = FontWeight.SemiBold,
+                   modifier = Modifier.clickable(enabled = !isLoading) {
+                       verifyDialogEmail = email.trim()
+                       showVerifyResendDialog = true
+                   },
+               )
+               Spacer(Modifier.height(16.dp))
+           }
+
+           EmailDomainField(
                label = stringResource(id = R.string.login_email_label),
                value = email,
                onValueChange = { email = it },
-               placeholder = stringResource(id = R.string.login_email_placeholder),
-               leadingIcon = Icons.Filled.Email,
-               keyboardOptions = KeyboardOptions(
-                   keyboardType = KeyboardType.Email,
-                   imeAction = ImeAction.Next,
-               ),
+               domainOptions = listOf("@gmail.com", "@yahoo.com", "@outlook.com"),
+               placeholderLocalPart = "tenban",
                keyboardActions = KeyboardActions(
                    onNext = { passwordFocusRequester.requestFocus() },
                ),
@@ -286,7 +485,38 @@ fun LoginScreen(
            val glowBlue = FitCtaGlow
 
            Button(
-               onClick = {},
+               onClick = {
+                   if (isLoading) return@Button
+                   focusManager.clearFocus()
+                   errorMessage = null
+                   showResendVerify = false
+                   val trimmedEmail = email.trim()
+                   if (trimmedEmail.isBlank() || password.isBlank()) {
+                       errorMessage = "Vui lòng nhập email và mật khẩu."
+                       return@Button
+                   }
+                   scope.launch {
+                       isLoading = true
+                       try {
+                           val auth = FirebaseAuth.getInstance()
+                           val result = auth.signInWithEmailAndPassword(trimmedEmail, password).await()
+                           val user = result.user
+                           if (user == null) {
+                               errorMessage = "Đăng nhập thất bại. Vui lòng thử lại."
+                           } else if (!user.isEmailVerified) {
+                               errorMessage = "Email chưa được xác minh. Vui lòng kiểm tra Gmail để xác minh trước khi đăng nhập."
+                               showResendVerify = true
+                           } else {
+                               secureAuthStorage.saveCredentials(trimmedEmail, password)
+                               onLoginSuccess()
+                           }
+                       } catch (e: Exception) {
+                           errorMessage = firebaseAuthErrorToViMessage(e)
+                       } finally {
+                           isLoading = false
+                       }
+                   }
+               },
                modifier = Modifier
                    .fillMaxWidth()
                    .height(56.dp)
@@ -315,7 +545,7 @@ fun LoginScreen(
                    horizontalArrangement = Arrangement.Center,
                ) {
                    Text(
-                       text = stringResource(id = R.string.login_button),
+                       text = if (isLoading) "Đang đăng nhập..." else stringResource(id = R.string.login_button),
                        fontSize = 17.sp,
                        fontWeight = FontWeight.SemiBold,
                        color = Color.White,
@@ -375,6 +605,7 @@ fun LoginScreen(
                    fontSize = 12.sp,
                    color = colorScheme.primary,
                    fontWeight = FontWeight.SemiBold,
+                   modifier = Modifier.clickable { onNavigateToRegister() },
                )
            }
        }
