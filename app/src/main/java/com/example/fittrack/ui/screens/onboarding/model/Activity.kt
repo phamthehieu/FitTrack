@@ -1,4 +1,4 @@
-package com.example.fittrack.ui.screens.onboarding
+package com.example.fittrack.ui.screens.onboarding.model
 
 data class Activity(
     val id: String,
@@ -6,4 +6,3 @@ data class Activity(
     val desc: String,
     val multiplier: Double
 )
-
