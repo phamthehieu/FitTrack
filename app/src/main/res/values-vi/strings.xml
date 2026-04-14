@@ -17,6 +17,35 @@
     <string name="login_toggle_password_hide">Ẩn mật khẩu</string>
     <string name="login_footer_no_account">Chưa có tài khoản?</string>
     <string name="login_footer_sign_up">Đăng ký</string>
+    <string name="login_resend_verification_link">Gửi lại link xác minh</string>
+    <string name="login_loading">Đang đăng nhập...</string>
+
+    <!-- Auth / Login / Dialog -->
+    <string name="dialog_login_title">Gửi lại email xác minh</string>
+    <string name="dialog_login_message">Tài khoản %1$s chưa được xác minh hoặc link xác minh đã hết hạn. Bạn muốn gửi lại email xác minh không?</string>
+    <string name="dialog_login_confirm">Gửi lại</string>
+    <string name="dialog_login_cancel">Để sau</string>
+    <string name="error_dialog_login_message">Vui lòng đăng nhập lại để gửi email xác minh</string>
+    <string name="dialog_login_resend_message">Đã gửi lại link xác minh. Vui lòng kiểm tra email.</string>
+    <string name="dialog_notice_title">Thông báo</string>
+    <string name="dialog_notice_close">Đóng</string>
+
+    <!-- Error_ Login -->
+    <string name="error_login_invalid_email">Email không hợp lệ. Vui lòng kiểm tra lại định dạng email.</string>
+    <string name="error_login_user_not_found">Không tìm thấy tài khoản với email này.</string>
+    <string name="error_login_wrong_password">Mật khẩu không đúng. Vui lòng thử lại.</string>
+    <string name="error_login_invalid_credential">Thông tin đăng nhập không hợp lệ hoặc đã hết hạn. Thường là do email/mật khẩu sai, hoặc mật khẩu đã thay đổi. Vui lòng nhập lại.</string>
+    <string name="error_login_user_disabled">Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ hỗ trợ.</string>
+    <string name="error_login_too_many_requests">Bạn thao tác quá nhiều lần. Vui lòng đợi một chút rồi thử lại.</string>
+    <string name="error_login_network_error">Lỗi kết nối mạng. Vui lòng kiểm tra Internet và thử lại.</string>
+    <string name="error_login_with_code">%1$s (Mã lỗi: %2$s)</string>
+    <string name="error_login_failed">Đăng nhập thất bại. Vui lòng thử lại.</string>
+    <string name="error_login_email_not_verified">Email chưa được xác minh. Vui lòng kiểm tra Gmail để xác minh trước khi đăng nhập.</string>
+    <string name="error_login_enter_email_password">Vui lòng nhập email và mật khẩu.</string>
+    <string name="error_login_missing_web_client_id">Chưa có default_web_client_id. Vui lòng bật Google Sign-In trong Firebase rồi tải lại google-services.json (có OAuth client) và build lại app.</string>
+    <string name="error_login_google_sign_in_failed">Không mở được màn chọn tài khoản Google vì context hiện tại không phải Activity. Vui lòng thử mở lại màn Login từ Activity chính rồi thử lại.</string>
+    <string name="error_login_google_generic">Không thể đăng nhập Google lúc này. Vui lòng thử lại.</string>
+    <string name="error_login_google_invalid_credential">Không đọc được thông tin đăng nhập Google hợp lệ. Vui lòng thử lại.</string>
 
     <!-- Home -->
     <string name="home_title">Màn hình chính</string>
@@ -27,6 +56,84 @@
     <string name="home_logout">Đăng xuất</string>
 
     <!-- Register -->
-    <string name="register_title">Đăng ký</string>
+    <string name="register_title">Đăng ký tài khoản</string>
     <string name="register_back_to_login">Quay lại đăng nhập</string>
+    <string name="register_subtitle">Hãy nhập thông tin để đăng ký tài khoản</string>
+    <string name="register_email_label">Email</string>
+    <string name="register_email_placeholder">Nhập địa chỉ email</string>
+    <string name="register_password_label">Mật khẩu</string>
+    <string name="register_password_placeholder">Nhập mật khẩu</string>
+    <string name="register_confirm_password_label">Xác nhận mật khẩu</string>
+    <string name="register_confirm_password_placeholder">Nhập lại mật khẩu</string>
+    <string name="register_button">Đăng ký</string>
+    <string name="register_loading">Đang đăng ký...</string>
+    <string name="register_verification_email_sent">Đã gửi link xác minh tới email của bạn. Vui lòng kiểm tra Gmail để xác minh.</string>
+    <string name="register_failed">Đăng ký thất bại. Vui lòng thử lại.</string>
+    <string name="register_account_created">Tài khoản đã được tạo thành công. Vui lòng kiểm tra email để xác minh.</string>
+
+    <!-- Error / Register -->
+    <string name="error_register_enter_email_password">Vui lòng nhập email và mật khẩu.</string>
+    <string name="error_register_password_mismatch">Mật khẩu xác nhận không khớp. Vui lòng nhập lại.</string>
+    <string name="error_register_password_too_short">Mật khẩu phải có ít nhất 6 ký tự.</string>
+
+    <!-- Otp Verification -->
+    <string name="otp_verification_title">Xác thực mã OTP</string>
+    <string name= "otp_verification_subtitle"> Vui lòng nhập mã 6 chữ số đã được gửi tới email đăng ký của bạn</string>
+    <string name="otp_verification_resend_message">Gửi lại mã sau %1$s</string>
+    <string name="otp_verification_resend_message_hint">Bạn chưa nhận được mã? </string>
+    <string name="otp_verification_resend_button">Gửi lại</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_logout">Đăng xuất</string>
+    <string name="onboarding_title">Thiết lập hồ sơ</string>
+    <string name="onboarding_subtitle">Nhập thông tin để hệ thống tính toán cho bạn</string>
+
+    <string name="onboarding_full_name_label">Họ và tên</string>
+    <string name="onboarding_full_name_placeholder">Nhập họ và tên</string>
+    <string name="onboarding_age_label">Tuổi</string>
+    <string name="onboarding_gender_label">Giới tính</string>
+    <string name="onboarding_gender_male">Nam</string>
+    <string name="onboarding_gender_female">Nữ</string>
+    <string name="onboarding_gender_other">Khác</string>
+    <string name="onboarding_height_label">Chiều cao</string>
+    <string name="onboarding_weight_label">Cân nặng</string>
+
+    <string name="onboarding_activity_level_title">MỨC ĐỘ VẬN ĐỘNG</string>
+    <string name="onboarding_activity_sedentary_label">Ít vận động</string>
+    <string name="onboarding_activity_sedentary_desc">Công việc văn phòng</string>
+    <string name="onboarding_activity_light_label">Vận động nhẹ</string>
+    <string name="onboarding_activity_light_desc">1-3 ngày/tuần</string>
+    <string name="onboarding_activity_moderate_label">Vận động vừa</string>
+    <string name="onboarding_activity_moderate_desc">3-5 ngày/tuần</string>
+    <string name="onboarding_activity_active_label">Vận động nhiều</string>
+    <string name="onboarding_activity_active_desc">Việc nặng</string>
+
+    <string name="onboarding_bmi_title">CHỈ SỐ BMI HIỆN TẠI</string>
+    <string name="onboarding_bmi_unit">kg/m²</string>
+    <string name="onboarding_bmi_underweight">THIẾU CÂN</string>
+    <string name="onboarding_bmi_normal">BÌNH THƯỜNG</string>
+    <string name="onboarding_bmi_overweight">THỪA CÂN</string>
+    <string name="onboarding_bmi_obese_1">BÉO PHÌ ĐỘ I</string>
+    <string name="onboarding_bmi_obese_2">BÉO PHÌ ĐỘ II</string>
+    <string name="onboarding_bmi_obese_3">BÉO PHÌ ĐỘ III</string>
+
+    <string name="onboarding_tdee_title">TDEE ƯỚC TÍNH</string>
+    <string name="onboarding_tdee_unit">cal/ngày</string>
+    <string name="onboarding_tdee_description">Đây là tổng mức năng lượng cơ thể bạn tiêu thụ trong một ngày dựa trên mức độ vận động.</string>
+
+    <string name="onboarding_goal_title">MỤC TIÊU CỦA BẠN</string>
+    <string name="onboarding_goal_lose_label">Giảm cân</string>
+    <string name="onboarding_goal_lose_desc">Thân hình săn chắc</string>
+    <string name="onboarding_goal_maintain_label">Duy trì</string>
+    <string name="onboarding_goal_maintain_desc">Cân bằng năng lượng</string>
+    <string name="onboarding_goal_gain_label">Tăng cân</string>
+    <string name="onboarding_goal_gain_desc">Xây dựng cơ bắp</string>
+
+    <string name="onboarding_target_weight_title">CÂN NẶNG MỤC TIÊU (KG)</string>
+    <string name="onboarding_target_weight_decrease">Giảm</string>
+    <string name="onboarding_target_weight_increase">Tăng</string>
+    <string name="onboarding_ideal_weight_unknown">Lý tưởng: --</string>
+    <string name="onboarding_ideal_weight_range">Lý tưởng: %1$s - %2$s kg</string>
+
+    <string name="onboarding_start_button">BẮT ĐẦU THEO DÕI</string>
 </resources>

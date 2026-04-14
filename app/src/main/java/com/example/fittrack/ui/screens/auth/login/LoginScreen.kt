@@ -4,12 +4,6 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
-import android.graphics.Typeface
-import android.view.Gravity
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +32,11 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Scaffold
+import com.example.fittrack.ui.components.feedback.AppSnackKind
+import com.example.fittrack.ui.components.feedback.AppSnackMessage
+import com.example.fittrack.ui.components.feedback.AppSnackbarHost
+import com.example.fittrack.ui.components.feedback.rememberAppSnackbarState
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -103,70 +102,34 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-private fun firebaseAuthErrorToViMessage(e: Exception): String {
+private fun firebaseAuthErrorToMessage(context: Context, e: Exception): String {
     val code = (e as? FirebaseAuthException)?.errorCode
 
-    val message = when (code) {
-        "ERROR_INVALID_EMAIL" ->
-            "Email không hợp lệ. Vui lòng kiểm tra lại định dạng email."
-        "ERROR_USER_NOT_FOUND" ->
-            "Không tìm thấy tài khoản với email này."
-        "ERROR_WRONG_PASSWORD" ->
-            "Mật khẩu không đúng. Vui lòng thử lại."
-        "ERROR_INVALID_CREDENTIAL" ->
-            "Thông tin đăng nhập không hợp lệ hoặc đã hết hạn. Thường là do email/mật khẩu sai, hoặc mật khẩu đã thay đổi. Vui lòng nhập lại."
-        "ERROR_USER_DISABLED" ->
-            "Tài khoản đã bị vô hiệu hoá. Vui lòng liên hệ hỗ trợ."
-        "ERROR_TOO_MANY_REQUESTS" ->
-            "Bạn thao tác quá nhiều lần. Vui lòng đợi một chút rồi thử lại."
-        "ERROR_NETWORK_REQUEST_FAILED" ->
-            "Lỗi kết nối mạng. Vui lòng kiểm tra Internet và thử lại."
+    val messageResId = when (code) {
+        "ERROR_INVALID_EMAIL" -> R.string.error_login_invalid_email
+        "ERROR_USER_NOT_FOUND" -> R.string.error_login_user_not_found
+        "ERROR_WRONG_PASSWORD" -> R.string.error_login_wrong_password
+        "ERROR_INVALID_CREDENTIAL" -> R.string.error_login_invalid_credential
+        "ERROR_USER_DISABLED" -> R.string.error_login_user_disabled
+        "ERROR_TOO_MANY_REQUESTS" -> R.string.error_login_too_many_requests
+        "ERROR_NETWORK_REQUEST_FAILED" -> R.string.error_login_network_error
         else -> null
     }
 
-    val fallback = e.message?.takeIf { it.isNotBlank() } ?: "Đăng nhập thất bại. Vui lòng thử lại."
-    val normalized = message ?: fallback
+    val fallback = e.message?.takeIf { it.isNotBlank() } ?: R.string.error_login_failed
+    val normalized = messageResId?.let(context::getString) ?: fallback
 
-    return if (!code.isNullOrBlank()) "$normalized (Mã lỗi: $code)" else normalized
+    return (if (!code.isNullOrBlank()) {
+        context.getString(R.string.error_login_with_code, normalized, code)
+    } else {
+        normalized
+    }) as String
 }
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
     else -> null
-}
-
-private fun showBrandedToast(context: Context, message: String) {
-    val appContext = context.applicationContext
-
-    val container = LinearLayout(appContext).apply {
-        orientation = LinearLayout.HORIZONTAL
-        gravity = Gravity.CENTER_VERTICAL
-        setPadding(32, 22, 32, 22)
-    }
-
-    val icon = ImageView(appContext).apply {
-        setImageResource(R.drawable.logo)
-        layoutParams = LinearLayout.LayoutParams(72, 72).apply {
-            marginEnd = 22
-        }
-    }
-
-    val text = TextView(appContext).apply {
-        this.text = message
-        setTextColor(android.graphics.Color.BLACK)
-        textSize = 14f
-        setTypeface(typeface, Typeface.NORMAL)
-    }
-
-    container.addView(icon)
-    container.addView(text)
-
-    Toast(appContext).apply {
-        duration = Toast.LENGTH_LONG
-        view = container
-        show()
-    }
 }
 
 private fun languageTagToFlagEmoji(languageTag: String): String {
@@ -192,6 +155,7 @@ fun LoginScreen(
     val context = LocalContext.current
     val view = LocalView.current
     val isPreview = LocalInspectionMode.current
+    val snackBar = rememberAppSnackbarState()
     val secureAuthStorage = remember(context) { SecureAuthStorage(context) }
     val auth = remember { if (isPreview) null else FirebaseAuth.getInstance() }
     val credentialManager = remember(context) { CredentialManager.create(context) }
@@ -205,17 +169,21 @@ fun LoginScreen(
         if (resId != 0) context.getString(resId) else ""
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
+    Scaffold(
+        snackbarHost = { AppSnackbarHost(state = snackBar) },
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(innerPadding)
+        ) {
         var email by remember { mutableStateOf(prefillEmail) }
         var password by remember { mutableStateOf("") }
         var showPassword by remember { mutableStateOf(false) }
         val passwordFocusRequester = remember { FocusRequester() }
         var isLoading by remember { mutableStateOf(false) }
-        var errorMessage by remember { mutableStateOf<String?>(null) }
+        var snackMessage by remember { mutableStateOf<AppSnackMessage?>(null) }
         var showResendVerify by remember { mutableStateOf(false) }
         var showVerifyResendDialog by remember { mutableStateOf(false) }
         var verifyDialogEmail by remember { mutableStateOf("") }
@@ -223,15 +191,15 @@ fun LoginScreen(
         var showLongMessageDialog by remember { mutableStateOf(false) }
         var longMessageDialogText by remember { mutableStateOf("") }
 
-        LaunchedEffect(errorMessage) {
-            val msg = errorMessage ?: return@LaunchedEffect
-            if (msg.length > 90) {
-                longMessageDialogText = msg
+        LaunchedEffect(snackMessage) {
+            val msg = snackMessage ?: return@LaunchedEffect
+            if (msg.text.length > 90) {
+                longMessageDialogText = msg.text
                 showLongMessageDialog = true
             } else {
-                showBrandedToast(context, msg)
+                snackBar.show(msg)
             }
-            errorMessage = null
+            snackMessage = null
         }
 
         LaunchedEffect(prefillEmail) {
@@ -250,13 +218,13 @@ fun LoginScreen(
                 return@LaunchedEffect
             }
 
-            val creds = secureAuthStorage.getCredentials() ?: return@LaunchedEffect
-            val (savedEmail, savedPassword) = creds
+            val cred = secureAuthStorage.getCredentials() ?: return@LaunchedEffect
+            val (savedEmail, savedPassword) = cred
             email = savedEmail
             password = savedPassword
 
             isLoading = true
-            errorMessage = null
+            snackMessage = null
             showResendVerify = false
 
             try {
@@ -264,9 +232,9 @@ fun LoginScreen(
                 val user = result?.user
                 if (user == null) {
                     secureAuthStorage.clearCredentials()
-                    errorMessage = "Đăng nhập thất bại. Vui lòng thử lại."
+                    snackMessage = AppSnackMessage(context.getString(R.string.error_login_failed), AppSnackKind.Error)
                 } else if (!user.isEmailVerified) {
-                    errorMessage = "Email chưa được xác minh. Vui lòng kiểm tra Gmail để xác minh trước khi đăng nhập."
+                    snackMessage = AppSnackMessage(context.getString(R.string.error_login_email_not_verified), AppSnackKind.Error)
                     showResendVerify = true
                     verifyDialogEmail = savedEmail
                     showVerifyResendDialog = true
@@ -275,7 +243,7 @@ fun LoginScreen(
                 }
             } catch (e: Exception) {
                 secureAuthStorage.clearCredentials()
-                errorMessage = firebaseAuthErrorToViMessage(e)
+                snackMessage = AppSnackMessage(firebaseAuthErrorToMessage(context, e), AppSnackKind.Error)
             } finally {
                 isLoading = false
             }
@@ -284,10 +252,10 @@ fun LoginScreen(
         if (showVerifyResendDialog) {
             AlertDialog(
                 onDismissRequest = { showVerifyResendDialog = false },
-                title = { Text(text = "Gửi lại email xác minh") },
+                title = { Text(text = stringResource(id = R.string.dialog_login_title)) },
                 text = {
                     val target = verifyDialogEmail.ifBlank { email.trim() }
-                    Text(text = "Tài khoản $target chưa được xác minh hoặc link xác minh đã hết hạn. Bạn muốn gửi lại email xác minh không?")
+                    Text(text = context.getString(R.string.dialog_login_message, target))
                 },
                 confirmButton = {
                     TextButton(
@@ -298,29 +266,29 @@ fun LoginScreen(
                                 try {
                                     val currentUser = auth?.currentUser
                                     if (currentUser == null) {
-                                        errorMessage = "Vui lòng đăng nhập lại để gửi email xác minh."
+                                        snackMessage = AppSnackMessage(context.getString(R.string.error_dialog_login_message), AppSnackKind.Error)
                                     } else {
                                         currentUser.sendEmailVerification().await()
-                                        errorMessage = "Đã gửi lại link xác minh. Vui lòng kiểm tra email."
+                                        snackMessage = AppSnackMessage(context.getString(R.string.dialog_login_resend_message), AppSnackKind.Success)
                                         showResendVerify = false
                                         showVerifyResendDialog = false
                                     }
                                 } catch (e: Exception) {
-                                    errorMessage = firebaseAuthErrorToViMessage(e)
+                                    snackMessage = AppSnackMessage(firebaseAuthErrorToMessage(context, e), AppSnackKind.Error)
                                 } finally {
                                     isLoading = false
                                 }
                             }
                         },
                     ) {
-                        Text("Gửi lại")
+                        Text(text = stringResource(id = R.string.dialog_login_confirm))
                     }
                 },
                 dismissButton = {
                     TextButton(
                         onClick = { showVerifyResendDialog = false },
                     ) {
-                        Text("Để sau")
+                        Text(text = stringResource(id = R.string.dialog_login_cancel))
                     }
                 },
             )
@@ -330,7 +298,7 @@ fun LoginScreen(
             val scrollState = rememberScrollState()
             AlertDialog(
                 onDismissRequest = { showLongMessageDialog = false },
-                title = { Text(text = "Thông báo") },
+                title = { Text(text = stringResource(id = R.string.dialog_notice_title)) },
                 text = {
                     SelectionContainer {
                         Text(
@@ -343,7 +311,7 @@ fun LoginScreen(
                     TextButton(
                         onClick = { showLongMessageDialog = false },
                     ) {
-                        Text("Đóng")
+                        Text(text = stringResource(id = R.string.dialog_notice_close))
                     }
                 },
             )
@@ -425,14 +393,14 @@ fun LoginScreen(
 
            if (showResendVerify) {
                Text(
-                   text = "Email chưa được xác minh. Bạn có thể gửi lại link xác minh.",
+                   text = stringResource(id = R.string.error_login_email_not_verified),
                    color = extras.textMuted,
                    fontSize = 13.sp,
                    lineHeight = 18.sp,
                )
                Spacer(Modifier.height(8.dp))
                Text(
-                   text = "Gửi lại link xác minh",
+                   text = stringResource(id = R.string.login_resend_verification_link),
                    color = colorScheme.primary,
                    fontSize = 13.sp,
                    fontWeight = FontWeight.SemiBold,
@@ -449,7 +417,7 @@ fun LoginScreen(
                value = email,
                onValueChange = { email = it },
                domainOptions = listOf("@gmail.com", "@yahoo.com", "@outlook.com"),
-               placeholderLocalPart = "tenban",
+               placeholderLocalPart = "",
                keyboardActions = KeyboardActions(
                    onNext = { passwordFocusRequester.requestFocus() },
                ),
@@ -561,11 +529,11 @@ fun LoginScreen(
                onClick = {
                    if (isLoading) return@Button
                    focusManager.clearFocus()
-                   errorMessage = null
+                   snackMessage = null
                    showResendVerify = false
                    val trimmedEmail = email.trim()
                    if (trimmedEmail.isBlank() || password.isBlank()) {
-                       errorMessage = "Vui lòng nhập email và mật khẩu."
+                       snackMessage = AppSnackMessage(context.getString(R.string.error_login_enter_email_password), AppSnackKind.Error)
                        return@Button
                    }
                    scope.launch {
@@ -574,16 +542,16 @@ fun LoginScreen(
                            val result = auth?.signInWithEmailAndPassword(trimmedEmail, password)?.await()
                            val user = result?.user
                            if (user == null) {
-                               errorMessage = "Đăng nhập thất bại. Vui lòng thử lại."
+                               snackMessage = AppSnackMessage(context.getString(R.string.error_login_failed), AppSnackKind.Error)
                            } else if (!user.isEmailVerified) {
-                               errorMessage = "Email chưa được xác minh. Vui lòng kiểm tra Gmail để xác minh trước khi đăng nhập."
+                               snackMessage = AppSnackMessage(context.getString(R.string.error_login_email_not_verified), AppSnackKind.Error)
                                showResendVerify = true
                            } else {
                                secureAuthStorage.saveCredentials(trimmedEmail, password)
                                onLoginSuccess()
                            }
                        } catch (e: Exception) {
-                           errorMessage = firebaseAuthErrorToViMessage(e)
+                           snackMessage = AppSnackMessage(firebaseAuthErrorToMessage(context, e), AppSnackKind.Error)
                        } finally {
                            isLoading = false
                        }
@@ -617,7 +585,7 @@ fun LoginScreen(
                    horizontalArrangement = Arrangement.Center,
                ) {
                    Text(
-                       text = if (isLoading) "Đang đăng nhập..." else stringResource(id = R.string.login_button),
+                       text = if (isLoading) stringResource(id = R.string.login_loading) else stringResource(id = R.string.login_button),
                        fontSize = 17.sp,
                        fontWeight = FontWeight.SemiBold,
                        color = Color.White,
@@ -661,18 +629,16 @@ fun LoginScreen(
                    onClick = {
                        if (isLoading) return@SocialButton
                        if (googleWebClientId.isBlank()) {
-                           errorMessage =
-                               "Chưa có `default_web_client_id`. Vui lòng bật Google Sign-In trong Firebase rồi tải lại `google-services.json` (có OAuth client) và build lại app."
+                           snackMessage = AppSnackMessage(context.getString(R.string.error_login_missing_web_client_id), AppSnackKind.Error)
                            return@SocialButton
                        }
                        scope.launch {
                            isLoading = true
-                           errorMessage = null
+                           snackMessage = null
                            showResendVerify = false
                            try {
                                val googleIdOption = GetGoogleIdOption.Builder()
                                    .setServerClientId(googleWebClientId)
-                                   // Nếu muốn chỉ cho chọn account đã từng dùng, đổi thành true.
                                    .setFilterByAuthorizedAccounts(false)
                                    .build()
 
@@ -682,7 +648,7 @@ fun LoginScreen(
 
                                val activity = context.findActivity() ?: view.context.findActivity()
                                if (activity == null) {
-                                   errorMessage = "Không mở được màn chọn tài khoản Google vì context hiện tại không phải Activity. Vui lòng thử mở lại màn Login từ Activity chính rồi thử lại."
+                                   snackMessage = AppSnackMessage(context.getString(R.string.error_login_google_sign_in_failed), AppSnackKind.Error)
                                    return@launch
                                }
 
@@ -704,17 +670,16 @@ fun LoginScreen(
                                        secureAuthStorage.clearCredentials()
                                        onLoginSuccess()
                                    } else {
-                                       errorMessage = "Đăng nhập Google thất bại. Vui lòng thử lại."
+                                       snackMessage = AppSnackMessage(context.getString(R.string.error_login_failed), AppSnackKind.Error)
                                    }
                                } else {
-                                   errorMessage = "Không nhận được thông tin đăng nhập Google hợp lệ. Vui lòng thử lại."
+                                   snackMessage = AppSnackMessage(context.getString(R.string.error_login_google_invalid_credential), AppSnackKind.Error)
                                }
                            } catch (e: GetCredentialException) {
-                               // User cancel hoặc lỗi từ provider cũng đi vào đây.
                                val msg = e.message?.takeIf { it.isNotBlank() }
-                               errorMessage = msg ?: "Không thể đăng nhập Google lúc này. Vui lòng thử lại."
+                               snackMessage = AppSnackMessage(msg ?: context.getString(R.string.error_login_google_generic), AppSnackKind.Error)
                            } catch (e: Exception) {
-                               errorMessage = firebaseAuthErrorToViMessage(e)
+                               snackMessage = AppSnackMessage(firebaseAuthErrorToMessage(context, e), AppSnackKind.Error)
                            } finally {
                                isLoading = false
                            }
@@ -758,6 +723,7 @@ fun LoginScreen(
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.background.copy(alpha = 0.28f))
             )
+        }
         }
     }
 }

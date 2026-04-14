@@ -52,6 +52,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -60,6 +62,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.fittrack.R
 import com.example.fittrack.ui.components.inputs.LabeledDropdownField
 import com.example.fittrack.ui.components.inputs.LabeledOutlinedTextField
 import com.example.fittrack.ui.components.surfaces.FitCardDefaults
@@ -77,8 +80,8 @@ fun OnBoardingScreen(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val extras = FitTrackExtras.colors
+    val context = LocalContext.current
 
-    // Không cho back ra khỏi onboarding bằng nút back hệ thống.
     BackHandler(enabled = true) {}
     
     var fullName by remember { mutableStateOf("") }
@@ -93,26 +96,26 @@ fun OnBoardingScreen(
     val activityLevels = listOf(
         com.example.fittrack.ui.screens.onboarding.model.Activity(
             "sedentary",
-            "Ít vận động",
-            "Công việc văn phòng",
+            stringResource(id = R.string.onboarding_activity_sedentary_label),
+            stringResource(id = R.string.onboarding_activity_sedentary_desc),
             1.2
         ),
         com.example.fittrack.ui.screens.onboarding.model.Activity(
             "light",
-            "Vận động nhẹ",
-            "1-3 ngày/tuần",
+            stringResource(id = R.string.onboarding_activity_light_label),
+            stringResource(id = R.string.onboarding_activity_light_desc),
             1.375
         ),
         com.example.fittrack.ui.screens.onboarding.model.Activity(
             "moderate",
-            "Vận động vừa",
-            "3-5 ngày/tuần",
+            stringResource(id = R.string.onboarding_activity_moderate_label),
+            stringResource(id = R.string.onboarding_activity_moderate_desc),
             1.55
         ),
         com.example.fittrack.ui.screens.onboarding.model.Activity(
             "active",
-            "Vận động nhiều",
-            "Việc nặng",
+            stringResource(id = R.string.onboarding_activity_active_label),
+            stringResource(id = R.string.onboarding_activity_active_desc),
             1.725
         )
     )
@@ -123,15 +126,15 @@ fun OnBoardingScreen(
     }
 
     val (bmiCategory, bmiCategoryColor) = when {
-        bmi < 18.5 -> "THIẾU CÂN" to extras.warning
-        bmi < 25.0 -> "BÌNH THƯỜNG" to extras.success
-        bmi < 30.0 -> "THỪA CÂN" to extras.warning
-        bmi < 35.0 -> "BÉO PHÌ ĐỘ I" to colorScheme.error
-        bmi < 40.0 -> "BÉO PHÌ ĐỘ II" to colorScheme.error
-        else -> "BÉO PHÌ ĐỘ III" to colorScheme.error
+        bmi < 18.5 -> stringResource(id = R.string.onboarding_bmi_underweight) to extras.warning
+        bmi < 25.0 -> stringResource(id = R.string.onboarding_bmi_normal) to extras.success
+        bmi < 30.0 -> stringResource(id = R.string.onboarding_bmi_overweight) to extras.warning
+        bmi < 35.0 -> stringResource(id = R.string.onboarding_bmi_obese_1) to colorScheme.error
+        bmi < 40.0 -> stringResource(id = R.string.onboarding_bmi_obese_2) to colorScheme.error
+        else -> stringResource(id = R.string.onboarding_bmi_obese_3) to colorScheme.error
     }
 
-    val tdee = remember(age, gender, height, weight, selectedActivity) {
+    val tee = remember(age, gender, height, weight, selectedActivity) {
         val w = weight.toFloatOrNull()
         val h = height.toFloatOrNull()
         val a = age.toIntOrNull()
@@ -140,7 +143,7 @@ fun OnBoardingScreen(
         if (w == null || h == null || a == null || w <= 0f || h <= 0f || a <= 0) {
             0
         } else {
-            val isFemale = gender.equals("Nữ", ignoreCase = true)
+            val isFemale = gender == context.getString(R.string.onboarding_gender_female)
             val s = if (isFemale) -161 else 5
             val bmr = (10f * w) + (6.25f * h) - (5f * a) + s
             (bmr * activityFactor).toInt().coerceAtLeast(0)
@@ -153,25 +156,37 @@ fun OnBoardingScreen(
             DecimalFormatSymbols().apply { groupingSeparator = '.' },
         )
     }
-    val tdeeText = if (tdee > 0) numberFormatter.format(tdee) else "--"
+    val teeText = if (tee > 0) numberFormatter.format(tee) else "--"
 
     val idealWeightRangeText = remember(height) {
         val hM = height.toFloatOrNull()?.div(100f) ?: 0f
         if (hM <= 0f) {
-            "Lý tưởng: --"
+            context.getString(R.string.onboarding_ideal_weight_unknown)
         } else {
             val minKg = 18.5f * (hM * hM)
             val maxKg = 24.9f * (hM * hM)
             val minStr = "%.0f".format(minKg)
             val maxStr = "%.0f".format(maxKg)
-            "Lý tưởng: $minStr - $maxStr kg"
+            context.getString(R.string.onboarding_ideal_weight_range, minStr, maxStr)
         }
     }
 
     val goals = listOf(
-        Goal("lose", "Giảm cân", "Thân hình săn chắc"),
-        Goal("maintain", "Duy trì", "Cân bằng năng lượng"),
-        Goal("gain", "Tăng cân", "Xây dựng cơ bắp")
+        Goal(
+            "lose",
+            stringResource(id = R.string.onboarding_goal_lose_label),
+            stringResource(id = R.string.onboarding_goal_lose_desc),
+        ),
+        Goal(
+            "maintain",
+            stringResource(id = R.string.onboarding_goal_maintain_label),
+            stringResource(id = R.string.onboarding_goal_maintain_desc),
+        ),
+        Goal(
+            "gain",
+            stringResource(id = R.string.onboarding_goal_gain_label),
+            stringResource(id = R.string.onboarding_goal_gain_desc),
+        ),
     )
 
     Box(
@@ -196,13 +211,13 @@ fun OnBoardingScreen(
             IconButton(onClick = onLogoutToLogin) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Đăng xuất",
+                    contentDescription = stringResource(id = R.string.onboarding_logout),
                     tint = colorScheme.primary,
                 )
             }
 
             Text(
-                "Thiết lập hồ sơ",
+                stringResource(id = R.string.onboarding_title),
                 color = colorScheme.primary,
                 fontWeight = FontWeight.Bold,
                 fontSize = 22.sp)
@@ -213,7 +228,7 @@ fun OnBoardingScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            "Nhập thông tin để hệ thống tính toán cho bạn",
+            stringResource(id = R.string.onboarding_subtitle),
             color = extras.textMuted,
             fontSize = 13.sp,
             lineHeight = 24.sp
@@ -230,10 +245,10 @@ fun OnBoardingScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 LabeledOutlinedTextField(
-                    label = "Họ và tên",
+                    label = stringResource(id = R.string.onboarding_full_name_label),
                     value = fullName,
                     onValueChange = { fullName = it },
-                    placeholder = "Nhập họ và tên",
+                    placeholder = stringResource(id = R.string.onboarding_full_name_placeholder),
                     leadingIcon = Icons.Filled.Person
                 )
 
@@ -245,7 +260,7 @@ fun OnBoardingScreen(
                 ) {
                     LabeledOutlinedTextField(
                         modifier = Modifier.weight(1f),
-                        label = "Tuổi",
+                        label = stringResource(id = R.string.onboarding_age_label),
                         value = age,
                         onValueChange = { age = it },
                         placeholder = "",
@@ -254,10 +269,14 @@ fun OnBoardingScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         LabeledDropdownField(
-                            label = "Giới tính",
+                            label = stringResource(id = R.string.onboarding_gender_label),
                             value = gender,
                             onValueChange = { gender = it },
-                            options = listOf("Nam", "Nữ", "Other"),
+                            options = listOf(
+                                stringResource(id = R.string.onboarding_gender_male),
+                                stringResource(id = R.string.onboarding_gender_female),
+                                stringResource(id = R.string.onboarding_gender_other),
+                            ),
                             placeholder = "",
                         )
                     }
@@ -281,7 +300,7 @@ fun OnBoardingScreen(
                 ) {
                     LabeledOutlinedTextField(
                         modifier = Modifier.weight(1f),
-                        label = "Chiều cao",
+                        label = stringResource(id = R.string.onboarding_height_label),
                         value = height,
                         onValueChange = { height = it },
                         placeholder = "",
@@ -290,7 +309,7 @@ fun OnBoardingScreen(
 
                     LabeledOutlinedTextField(
                             modifier = Modifier.weight(1f),
-                            label = "Cân nặng ",
+                            label = stringResource(id = R.string.onboarding_weight_label),
                             value = weight,
                             onValueChange = { weight = it },
                             placeholder = "",
@@ -300,7 +319,7 @@ fun OnBoardingScreen(
 
                 Spacer(Modifier.height(24.dp))
 
-                Text("MỨC ĐỘ VẬN ĐỘNG", color = extras.textMuted)
+                Text(stringResource(id = R.string.onboarding_activity_level_title), color = extras.textMuted)
 
                 activityLevels.forEach {
                     ActivityItem(
@@ -324,7 +343,7 @@ fun OnBoardingScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "CHỈ SỐ BMI HIỆN TẠI",
+                    text = stringResource(id = R.string.onboarding_bmi_title),
                     color = extras.textMuted,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -343,7 +362,7 @@ fun OnBoardingScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "kg/m²",
+                        text = stringResource(id = R.string.onboarding_bmi_unit),
                         color = extras.textMuted,
                         fontSize = 14.sp,
                         modifier = Modifier.padding(bottom = 6.dp),
@@ -389,7 +408,7 @@ fun OnBoardingScreen(
                 Spacer(Modifier.height(18.dp))
 
                 Text(
-                    text = "TDEE ƯỚC TÍNH",
+                    text = stringResource(id = R.string.onboarding_tdee_title),
                     color = extras.textMuted,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -406,10 +425,10 @@ fun OnBoardingScreen(
                                 fontSize = 34.sp,
                                 fontWeight = FontWeight.Bold,
                             )
-                        ) { append(tdeeText) }
+                        ) { append(teeText) }
                         append(" ")
                         withStyle(SpanStyle(color = extras.textMuted, fontSize = 14.sp)) {
-                            append("cal/ngày")
+                            append(stringResource(id = R.string.onboarding_tdee_unit))
                         }
                     },
                 )
@@ -417,7 +436,7 @@ fun OnBoardingScreen(
                 Spacer(Modifier.height(10.dp))
 
                 Text(
-                    text = "Đây là tổng mức năng lượng cơ thể bạn tiêu thụ trong một ngày dựa trên mức độ vận động.",
+                    text = stringResource(id = R.string.onboarding_tdee_description),
                     color = extras.textMuted,
                     fontSize = 12.sp,
                     lineHeight = 18.sp,
@@ -438,7 +457,12 @@ fun OnBoardingScreen(
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
-                Text("MỤC TIÊU CỦA BẠN", color = extras.textSecondary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    stringResource(id = R.string.onboarding_goal_title),
+                    color = extras.textSecondary,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
                 Spacer(Modifier.height(12.dp))
 
@@ -466,7 +490,7 @@ fun OnBoardingScreen(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "CÂN NẶNG MỤC TIÊU (KG)",
+                    text = stringResource(id = R.string.onboarding_target_weight_title),
                     color = extras.textMuted,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -498,7 +522,7 @@ fun OnBoardingScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Remove,
-                            contentDescription = "Giảm",
+                            contentDescription = stringResource(id = R.string.onboarding_target_weight_decrease),
                             tint = extras.textSecondary,
                         )
                     }
@@ -519,7 +543,7 @@ fun OnBoardingScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Add,
-                            contentDescription = "Tăng",
+                            contentDescription = stringResource(id = R.string.onboarding_target_weight_increase),
                             tint = extras.textSecondary,
                         )
                     }
@@ -548,7 +572,7 @@ fun OnBoardingScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = "BẮT ĐẦU THEO DÕI",
+                    text = stringResource(id = R.string.onboarding_start_button),
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 0.6.sp,
                 )

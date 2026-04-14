@@ -30,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -54,13 +55,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.fittrack.R
+import com.example.fittrack.ui.components.feedback.AppSnackbarHost
+import com.example.fittrack.ui.components.feedback.rememberAppSnackbarState
 import com.example.fittrack.ui.components.inputs.LabeledOutlinedTextField
 import com.example.fittrack.ui.theme.FitTrackExtras
 import com.example.fittrack.ui.theme.FitTrackTheme
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import android.widget.Toast
 
 @Composable
 fun RegisterScreen(
@@ -72,6 +74,7 @@ fun RegisterScreen(
     val extras = FitTrackExtras.colors
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val snackBar = rememberAppSnackbarState()
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -81,14 +84,16 @@ fun RegisterScreen(
     var showConfirmPassword by remember { mutableStateOf(false) }
     val confirmPasswordFocusRequester = remember { FocusRequester() }
     var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
 
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
+    Scaffold(
+        snackbarHost = { AppSnackbarHost(state = snackBar) },
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(innerPadding)
+        ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -104,12 +109,12 @@ fun RegisterScreen(
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Quay lại",
+                        contentDescription = stringResource(id = R.string.register_back_to_login),
                         tint = colorScheme.primary,
                     )
                 }
                 Text(
-                    text = "Đăng ký tài khoản",
+                    text = stringResource(id = R.string.register_title),
                     modifier = Modifier.weight(1f),
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
@@ -120,7 +125,7 @@ fun RegisterScreen(
             }
 
             Text(
-                text = "Hãy nhập thông tin để đăng ký tài khoản",
+                text = stringResource(id = R.string.register_subtitle),
                 fontSize = 14.sp,
                 color = extras.textMuted,
                 lineHeight = 24.sp
@@ -129,10 +134,10 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             LabeledOutlinedTextField(
-                label = stringResource(id = R.string.login_email_label),
+                label = stringResource(id = R.string.register_email_label),
                 value = email,
                 onValueChange = { email = it },
-                placeholder = stringResource(id = R.string.login_email_placeholder),
+                placeholder = stringResource(id = R.string.register_email_placeholder),
                 leadingIcon = Icons.Filled.Email,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
@@ -146,7 +151,7 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Mật khẩu",
+                text = stringResource(id = R.string.register_password_label),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = extras.textSecondary,
@@ -157,7 +162,7 @@ fun RegisterScreen(
                onValueChange = { password = it },
                placeholder = {
                    Text(
-                       text = stringResource(id = R.string.login_password_placeholder),
+                       text = stringResource(id = R.string.register_password_placeholder),
                        color = extras.inputPlaceholder,
                    )
                },
@@ -225,7 +230,7 @@ fun RegisterScreen(
             Spacer(Modifier.height(24.dp))
 
             Text(
-                text = "Xác nhận mật khẩu",
+                text = stringResource(id= R.string.register_confirm_password_label),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = extras.textSecondary,
@@ -236,7 +241,7 @@ fun RegisterScreen(
                 onValueChange = { confirmPassword = it },
                 placeholder = {
                     Text(
-                        text = "Nhập lại mật khẩu",
+                        text = stringResource(id= R.string.register_confirm_password_placeholder),
                         color = extras.inputPlaceholder,
                     )
                 },
@@ -303,33 +308,28 @@ fun RegisterScreen(
 
             Spacer(Modifier.height(32.dp))
 
-            if (errorMessage != null) {
-                Text(
-                    text = errorMessage!!,
-                    color = colorScheme.error,
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                )
-                Spacer(Modifier.height(12.dp))
-            }
-
             Button(
                 onClick = {
                     if (isLoading) return@Button
                     focusManager.clearFocus()
-                    errorMessage = null
 
                     val trimmedEmail = email.trim()
                     if (trimmedEmail.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
-                        errorMessage = "Vui lòng nhập đầy đủ thông tin."
+                        scope.launch {
+                            snackBar.showError(context.getString(R.string.error_register_enter_email_password))
+                        }
                         return@Button
                     }
                     if (password.length < 6) {
-                        errorMessage = "Mật khẩu phải có ít nhất 6 ký tự."
+                        scope.launch {
+                            snackBar.showError(context.getString(R.string.error_register_password_too_short))
+                        }
                         return@Button
                     }
                     if (password != confirmPassword) {
-                        errorMessage = "Mật khẩu xác nhận không khớp."
+                        scope.launch {
+                            snackBar.showError(context.getString(R.string.error_register_password_mismatch))
+                        }
                         return@Button
                     }
 
@@ -339,15 +339,11 @@ fun RegisterScreen(
                             val auth = FirebaseAuth.getInstance()
                             val result = auth.createUserWithEmailAndPassword(trimmedEmail, password).await()
                             result.user?.sendEmailVerification()?.await()
-                            Toast.makeText(
-                                context,
-                                "Đã gửi link xác minh tới email của bạn. Vui lòng kiểm tra Gmail để xác minh.",
-                                Toast.LENGTH_LONG
-                            ).show()
+                            snackBar.showSuccess(context.getString(R.string.register_verification_email_sent))
                             auth.signOut()
                             onRegistered(trimmedEmail)
                         } catch (e: Exception) {
-                            errorMessage = e.message ?: "Đăng ký thất bại. Vui lòng thử lại."
+                            snackBar.showError(e.message ?: context.getString(R.string.register_failed))
                         } finally {
                             isLoading = false
                         }
@@ -364,12 +360,12 @@ fun RegisterScreen(
                 enabled = !isLoading,
             ) {
                 Row(
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        text = if (isLoading) "Đang gửi link..." else "Đăng ký tài khoản",
+                            text = if (isLoading) stringResource(id = R.string.register_loading) else stringResource(id = R.string.register_button),
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.6.sp,
                     )
@@ -382,6 +378,7 @@ fun RegisterScreen(
                 }
             }
         }
+    }
     }
 }
 

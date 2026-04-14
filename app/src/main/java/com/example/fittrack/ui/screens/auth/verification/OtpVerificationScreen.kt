@@ -38,9 +38,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import com.example.fittrack.R
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -88,25 +89,22 @@ fun OtpVerificationScreen(
         // Top bar
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onNavigateBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Quay lại",
+                    contentDescription = "",
                     tint = colorScheme.onSurface,
                 )
             }
             Text(
-                text = "VERIFICATION",
-                modifier = Modifier.weight(1f),
+                text = stringResource(id = R.string.otp_verification_title),
                 color = colorScheme.onSurface,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.sp,
-                textAlign = TextAlign.Center,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
             )
             Spacer(Modifier.width(48.dp))
         }
@@ -119,17 +117,12 @@ fun OtpVerificationScreen(
         ) {
             Spacer(Modifier.height(8.dp))
 
-            Text(
-                text = "Xác thực mã OTP",
-                color = colorScheme.onSurface,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
-            )
+
 
             Spacer(Modifier.height(12.dp))
 
             Text(
-                text = "Vui lòng nhập mã 6 chữ số đã được gửi tới số điện thoại của bạn",
+                text = stringResource(id = R.string.otp_verification_subtitle),
                 color = extras.textMuted,
                 fontSize = 14.sp,
                 lineHeight = 22.sp,
@@ -170,7 +163,7 @@ fun OtpVerificationScreen(
                     modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    text = "Gửi lại mã sau ${formatCountdownMmSs(secondsLeft)}",
+                    text = stringResource(id = R.string.otp_verification_resend_message, formatCountdownMmSs(secondsLeft)),
                     color = timerLabelColor,
                     fontSize = 13.sp,
                     fontFamily = FontFamily.Monospace,
@@ -185,12 +178,12 @@ fun OtpVerificationScreen(
                 horizontalArrangement = Arrangement.Center,
             ) {
                 Text(
-                    text = "Bạn chưa nhận được mã? ",
+                    text = stringResource(id = R.string.otp_verification_resend_message_hint),
                     color = extras.textMuted,
                     fontSize = 14.sp,
                 )
                 Text(
-                    text = "Gửi lại",
+                    text = stringResource(id = R.string.otp_verification_resend_button),
                     color = if (canResend) colorScheme.primary else extras.textMuted.copy(alpha = 0.45f),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -235,7 +228,7 @@ fun OtpVerificationScreen(
                         otp = otp.dropLast(1)
                     }
                 },
-                onDot = { /* không dùng cho OTP */ },
+                onDot = {},
                 keyColor = colorScheme.onSurface,
             )
         }
