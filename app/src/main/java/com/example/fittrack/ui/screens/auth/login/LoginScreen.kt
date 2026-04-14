@@ -1,6 +1,17 @@
 package com.example.fittrack.ui.screens.auth.login
 
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.graphics.Typeface
+import android.view.Gravity
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,8 +33,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Brightness4
-import androidx.compose.material.icons.filled.Brightness7
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -62,6 +71,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -79,20 +89,24 @@ import com.example.fittrack.ui.components.inputs.EmailDomainField
 import com.example.fittrack.ui.theme.FitCtaGradientStart
 import com.example.fittrack.ui.theme.FitTrackTheme
 import com.example.fittrack.ui.theme.FitTrackExtras
-import com.example.fittrack.ui.theme.ThemeMode
 import com.example.fittrack.data.security.SecureAuthStorage
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
+import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import android.widget.Toast
 
 private fun firebaseAuthErrorToViMessage(e: Exception): String {
     val code = (e as? FirebaseAuthException)?.errorCode
 
     val message = when (code) {
-        // Common sign-in failures
         "ERROR_INVALID_EMAIL" ->
             "Email không hợp lệ. Vui lòng kiểm tra lại định dạng email."
         "ERROR_USER_NOT_FOUND" ->
@@ -113,11 +127,48 @@ private fun firebaseAuthErrorToViMessage(e: Exception): String {
     val fallback = e.message?.takeIf { it.isNotBlank() } ?: "Đăng nhập thất bại. Vui lòng thử lại."
     val normalized = message ?: fallback
 
-    // Giữ mã lỗi để dễ debug (nếu có)
     return if (!code.isNullOrBlank()) "$normalized (Mã lỗi: $code)" else normalized
 }
 
-/** Cờ hiển thị theo locale app (en ↔ vi). */
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+private fun showBrandedToast(context: Context, message: String) {
+    val appContext = context.applicationContext
+
+    val container = LinearLayout(appContext).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(32, 22, 32, 22)
+    }
+
+    val icon = ImageView(appContext).apply {
+        setImageResource(R.drawable.logo)
+        layoutParams = LinearLayout.LayoutParams(72, 72).apply {
+            marginEnd = 22
+        }
+    }
+
+    val text = TextView(appContext).apply {
+        this.text = message
+        setTextColor(android.graphics.Color.BLACK)
+        textSize = 14f
+        setTypeface(typeface, Typeface.NORMAL)
+    }
+
+    container.addView(icon)
+    container.addView(text)
+
+    Toast(appContext).apply {
+        duration = Toast.LENGTH_LONG
+        view = container
+        show()
+    }
+}
+
 private fun languageTagToFlagEmoji(languageTag: String): String {
     val base = languageTag.lowercase().substringBefore('-').substringBefore('_')
     return when (base) {
@@ -127,11 +178,10 @@ private fun languageTagToFlagEmoji(languageTag: String): String {
     }
 }
 
+@SuppressLint("LocalContextResourcesRead", "DiscouragedApi")
 @Composable
 fun LoginScreen(
-    currentThemeMode: ThemeMode = ThemeMode.SYSTEM,
     currentLanguageTag: String = "en",
-    onToggleTheme: () -> Unit = {},
     onToggleLanguage: () -> Unit = {},
     onLoginSuccess: () -> Unit = {},
     onNavigateToRegister: () -> Unit = {},
@@ -140,7 +190,20 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     var showTransitionOverlay by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val view = LocalView.current
+    val isPreview = LocalInspectionMode.current
     val secureAuthStorage = remember(context) { SecureAuthStorage(context) }
+    val auth = remember { if (isPreview) null else FirebaseAuth.getInstance() }
+    val credentialManager = remember(context) { CredentialManager.create(context) }
+
+    val googleWebClientId = remember(context) {
+        val resId = context.resources.getIdentifier(
+            "default_web_client_id",
+            "string",
+            context.packageName
+        )
+        if (resId != 0) context.getString(resId) else ""
+    }
 
     Box(
         modifier = Modifier
@@ -162,12 +225,11 @@ fun LoginScreen(
 
         LaunchedEffect(errorMessage) {
             val msg = errorMessage ?: return@LaunchedEffect
-            // Toast bị giới hạn độ dài; message dài thì hiển thị dialog để đọc hết.
             if (msg.length > 90) {
                 longMessageDialogText = msg
                 showLongMessageDialog = true
             } else {
-                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                showBrandedToast(context, msg)
             }
             errorMessage = null
         }
@@ -179,11 +241,10 @@ fun LoginScreen(
         }
 
         LaunchedEffect(Unit) {
-            if (autoLoginAttempted) return@LaunchedEffect
+            if (isPreview || autoLoginAttempted) return@LaunchedEffect
             autoLoginAttempted = true
 
-            val auth = FirebaseAuth.getInstance()
-            val currentUser = auth.currentUser
+            val currentUser = auth?.currentUser
             if (currentUser != null && currentUser.isEmailVerified) {
                 onLoginSuccess()
                 return@LaunchedEffect
@@ -199,8 +260,8 @@ fun LoginScreen(
             showResendVerify = false
 
             try {
-                val result = auth.signInWithEmailAndPassword(savedEmail, savedPassword).await()
-                val user = result.user
+                val result = auth?.signInWithEmailAndPassword(savedEmail, savedPassword)?.await()
+                val user = result?.user
                 if (user == null) {
                     secureAuthStorage.clearCredentials()
                     errorMessage = "Đăng nhập thất bại. Vui lòng thử lại."
@@ -235,8 +296,7 @@ fun LoginScreen(
                             scope.launch {
                                 isLoading = true
                                 try {
-                                    val auth = FirebaseAuth.getInstance()
-                                    val currentUser = auth.currentUser
+                                    val currentUser = auth?.currentUser
                                     if (currentUser == null) {
                                         errorMessage = "Vui lòng đăng nhập lại để gửi email xác minh."
                                     } else {
@@ -511,9 +571,8 @@ fun LoginScreen(
                    scope.launch {
                        isLoading = true
                        try {
-                           val auth = FirebaseAuth.getInstance()
-                           val result = auth.signInWithEmailAndPassword(trimmedEmail, password).await()
-                           val user = result.user
+                           val result = auth?.signInWithEmailAndPassword(trimmedEmail, password)?.await()
+                           val user = result?.user
                            if (user == null) {
                                errorMessage = "Đăng nhập thất bại. Vui lòng thử lại."
                            } else if (!user.isEmailVerified) {
@@ -595,7 +654,73 @@ fun LoginScreen(
            }
 
            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-               SocialButton(text = "Google", iconText = "G", modifier = Modifier.weight(1f))
+               SocialButton(
+                   text = "Google",
+                   iconText = "G",
+                   modifier = Modifier.weight(1f),
+                   onClick = {
+                       if (isLoading) return@SocialButton
+                       if (googleWebClientId.isBlank()) {
+                           errorMessage =
+                               "Chưa có `default_web_client_id`. Vui lòng bật Google Sign-In trong Firebase rồi tải lại `google-services.json` (có OAuth client) và build lại app."
+                           return@SocialButton
+                       }
+                       scope.launch {
+                           isLoading = true
+                           errorMessage = null
+                           showResendVerify = false
+                           try {
+                               val googleIdOption = GetGoogleIdOption.Builder()
+                                   .setServerClientId(googleWebClientId)
+                                   // Nếu muốn chỉ cho chọn account đã từng dùng, đổi thành true.
+                                   .setFilterByAuthorizedAccounts(false)
+                                   .build()
+
+                               val request = GetCredentialRequest.Builder()
+                                   .addCredentialOption(googleIdOption)
+                                   .build()
+
+                               val activity = context.findActivity() ?: view.context.findActivity()
+                               if (activity == null) {
+                                   errorMessage = "Không mở được màn chọn tài khoản Google vì context hiện tại không phải Activity. Vui lòng thử mở lại màn Login từ Activity chính rồi thử lại."
+                                   return@launch
+                               }
+
+                               val result = credentialManager.getCredential(
+                                   context = activity,
+                                   request = request,
+                               )
+
+                               val credential = result.credential
+                               if (credential is CustomCredential &&
+                                   credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                               ) {
+                                   val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                                   val idToken = googleIdTokenCredential.idToken
+                                   val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
+                                   val signInResult = auth?.signInWithCredential(firebaseCredential)?.await()
+
+                                   if (signInResult?.user != null) {
+                                       secureAuthStorage.clearCredentials()
+                                       onLoginSuccess()
+                                   } else {
+                                       errorMessage = "Đăng nhập Google thất bại. Vui lòng thử lại."
+                                   }
+                               } else {
+                                   errorMessage = "Không nhận được thông tin đăng nhập Google hợp lệ. Vui lòng thử lại."
+                               }
+                           } catch (e: GetCredentialException) {
+                               // User cancel hoặc lỗi từ provider cũng đi vào đây.
+                               val msg = e.message?.takeIf { it.isNotBlank() }
+                               errorMessage = msg ?: "Không thể đăng nhập Google lúc này. Vui lòng thử lại."
+                           } catch (e: Exception) {
+                               errorMessage = firebaseAuthErrorToViMessage(e)
+                           } finally {
+                               isLoading = false
+                           }
+                       }
+                   }
+               )
 
            }
 
@@ -638,10 +763,15 @@ fun LoginScreen(
 }
 
 @Composable
-fun SocialButton(text: String, iconText: String, modifier: Modifier = Modifier) {
+fun SocialButton(
+    text: String,
+    iconText: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
+) {
     val extras = FitTrackExtras.colors
     OutlinedButton(
-        onClick = { },
+        onClick = onClick,
         modifier = modifier.height(52.dp),
         shape = CircleShape,
         border = BorderStroke(1.dp, Color.LightGray)

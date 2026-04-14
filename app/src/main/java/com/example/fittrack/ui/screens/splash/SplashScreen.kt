@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.fittrack.R
 import com.example.fittrack.ui.theme.FitTrackTheme
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 
 private const val MinSplashMillis = 900L
@@ -72,11 +71,9 @@ fun SplashScreen(
     LaunchedEffect(Unit) {
         contentVisible = true
         delay(MinSplashMillis)
-        if (FirebaseAuth.getInstance().currentUser != null) {
-            onNavigateToHome()
-        } else {
-            onNavigateToLogin()
-        }
+        // Luôn đi vào Login trước; LoginScreen sẽ tự auto-login nếu có lưu credentials,
+        // và chỉ sau khi login thành công mới quyết định qua Onboarding/Home.
+        onNavigateToLogin()
     }
 
     val gradient = Brush.verticalGradient(

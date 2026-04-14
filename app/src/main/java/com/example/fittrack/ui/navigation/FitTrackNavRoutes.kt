@@ -7,6 +7,7 @@ object FitTrackRoutes {
     const val LOGIN = "login"
     const val LOGIN_ROUTE = "login?email={email}"
     const val REGISTER = "register"
+    const val ONBOARDING = "onboarding"
     const val HOME = "home"
 
     fun loginRoute(prefillEmail: String? = null): String {

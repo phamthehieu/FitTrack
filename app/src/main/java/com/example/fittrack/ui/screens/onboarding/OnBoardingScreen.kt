@@ -1,6 +1,6 @@
 package com.example.fittrack.ui.screens.onboarding
 
-import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -25,6 +28,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Height
 import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material3.Button
@@ -40,9 +44,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -65,9 +71,15 @@ import java.text.DecimalFormatSymbols
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OnBoardingScreen () {
+fun OnBoardingScreen(
+    onFinished: () -> Unit = {},
+    onLogoutToLogin: () -> Unit = {},
+) {
     val colorScheme = MaterialTheme.colorScheme
     val extras = FitTrackExtras.colors
+
+    // Không cho back ra khỏi onboarding bằng nút back hệ thống.
+    BackHandler(enabled = true) {}
     
     var fullName by remember { mutableStateOf("") }
     var age by remember { mutableStateOf("") }
@@ -76,7 +88,7 @@ fun OnBoardingScreen () {
     var weight by remember { mutableStateOf("") }
     var selectedActivity by remember { mutableStateOf("moderate") }
     var selectedGoal by remember { mutableStateOf("maintain") }
-    var targetWeight by remember { mutableStateOf(72.0) }
+    var targetWeight by remember { mutableDoubleStateOf(72.0) }
 
     val activityLevels = listOf(
         com.example.fittrack.ui.screens.onboarding.model.Activity(
@@ -162,22 +174,40 @@ fun OnBoardingScreen () {
         Goal("gain", "Tăng cân", "Xây dựng cơ bắp")
     )
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp)
     ) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .windowInsetsPadding(WindowInsets.navigationBars)
         ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            IconButton(onClick = onLogoutToLogin) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Đăng xuất",
+                    tint = colorScheme.primary,
+                )
+            }
+
             Text(
                 "Thiết lập hồ sơ",
                 color = colorScheme.primary,
                 fontWeight = FontWeight.Bold,
                 fontSize = 22.sp)
+
+            Spacer(modifier = Modifier.width(48.dp))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -303,7 +333,7 @@ fun OnBoardingScreen () {
 
                 Spacer(Modifier.height(12.dp))
 
-                Row(verticalAlignment = androidx.compose.ui.Alignment.Bottom) {
+                Row(verticalAlignment = Alignment.Bottom) {
                     Text(
                         text = "%.1f".format(bmi),
                         color = colorScheme.onSurface,
@@ -323,7 +353,7 @@ fun OnBoardingScreen () {
                 Spacer(Modifier.height(12.dp))
 
                 Row(
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .clip(RoundedCornerShape(percent = 50))
                         .background(bmiCategoryColor.copy(alpha = 0.12f))
@@ -456,7 +486,7 @@ fun OnBoardingScreen () {
                         .clip(RoundedCornerShape(18.dp))
                         .background(colorScheme.surfaceVariant.copy(alpha = 0.18f))
                         .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     IconButton(
@@ -501,7 +531,7 @@ fun OnBoardingScreen () {
 
         Button(
             onClick = {
-                println("Start tracking: $age $gender")
+                onFinished()
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -513,7 +543,7 @@ fun OnBoardingScreen () {
             ),
         ) {
             Row(
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -529,6 +559,7 @@ fun OnBoardingScreen () {
                     tint = Color.White,
                 )
             }
+        }
         }
     }
 }

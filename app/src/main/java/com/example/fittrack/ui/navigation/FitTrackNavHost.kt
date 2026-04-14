@@ -1,6 +1,7 @@
 package com.example.fittrack.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -8,13 +9,17 @@ import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.fittrack.data.preferences.OnboardingPreferences
 import com.example.fittrack.data.security.SecureAuthStorage
 import com.example.fittrack.ui.screens.auth.login.LoginScreen
 import com.example.fittrack.ui.screens.auth.register.RegisterScreen
 import com.example.fittrack.ui.screens.home.HomeScreen
+import com.example.fittrack.ui.screens.onboarding.OnBoardingScreen
 import com.example.fittrack.ui.screens.splash.SplashScreen
 import com.example.fittrack.ui.theme.ThemeMode
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @Composable
 fun FitTrackNavHost(
@@ -26,7 +31,9 @@ fun FitTrackNavHost(
     onLanguageTagChange: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val secureAuthStorage = SecureAuthStorage(context)
+    val onboardingPreferences = OnboardingPreferences(context)
 
     NavHost(
         navController = navController,
@@ -36,8 +43,11 @@ fun FitTrackNavHost(
         composable(FitTrackRoutes.SPLASH) {
             SplashScreen(
                 onNavigateToHome = {
-                    navController.navigate(FitTrackRoutes.HOME) {
-                        popUpTo(FitTrackRoutes.SPLASH) { inclusive = true }
+                    scope.launch {
+                        val completed = onboardingPreferences.completed.first()
+                        navController.navigate(if (completed) FitTrackRoutes.HOME else FitTrackRoutes.ONBOARDING) {
+                            popUpTo(FitTrackRoutes.SPLASH) { inclusive = true }
+                        }
                     }
                 },
                 onNavigateToLogin = {
@@ -55,23 +65,17 @@ fun FitTrackNavHost(
         ) { backStackEntry ->
             val prefillEmail = backStackEntry.arguments?.getString("email").orEmpty()
             LoginScreen(
-                currentThemeMode = currentThemeMode,
                 currentLanguageTag = currentLanguageTag,
-                onToggleTheme = {
-                    val next = when (currentThemeMode) {
-                        ThemeMode.SYSTEM -> ThemeMode.DARK
-                        ThemeMode.LIGHT -> ThemeMode.DARK
-                        ThemeMode.DARK -> ThemeMode.LIGHT
-                    }
-                    onThemeModeChange(next)
-                },
                 onToggleLanguage = {
                     val next = if (currentLanguageTag.lowercase().startsWith("vi")) "en" else "vi"
                     onLanguageTagChange(next)
                 },
                 onLoginSuccess = {
-                    navController.navigate(FitTrackRoutes.HOME) {
-                        popUpTo(FitTrackRoutes.LOGIN_ROUTE) { inclusive = true }
+                    scope.launch {
+                        val completed = onboardingPreferences.completed.first()
+                        navController.navigate(if (completed) FitTrackRoutes.HOME else FitTrackRoutes.ONBOARDING) {
+                            popUpTo(FitTrackRoutes.LOGIN_ROUTE) { inclusive = true }
+                        }
                     }
                 },
                 onNavigateToRegister = { navController.navigate(FitTrackRoutes.REGISTER) },
@@ -89,6 +93,28 @@ fun FitTrackNavHost(
                 },
             )
         }
+        composable(FitTrackRoutes.ONBOARDING) {
+            OnBoardingScreen(
+                onFinished = {
+                    scope.launch {
+                        onboardingPreferences.setCompleted(true)
+                        navController.navigate(FitTrackRoutes.HOME) {
+                            popUpTo(FitTrackRoutes.ONBOARDING) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                },
+                onLogoutToLogin = {
+                    FirebaseAuth.getInstance().signOut()
+                    secureAuthStorage.clearCredentials()
+                    scope.launch { onboardingPreferences.setCompleted(false) }
+                    navController.navigate(FitTrackRoutes.loginRoute()) {
+                        popUpTo(FitTrackRoutes.ONBOARDING) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
         composable(FitTrackRoutes.HOME) {
             HomeScreen(
                 currentThemeMode = currentThemeMode,
@@ -96,6 +122,7 @@ fun FitTrackNavHost(
                 onLogout = {
                     FirebaseAuth.getInstance().signOut()
                     secureAuthStorage.clearCredentials()
+                    scope.launch { onboardingPreferences.setCompleted(false) }
                     navController.navigate(FitTrackRoutes.loginRoute()) {
                         popUpTo(FitTrackRoutes.HOME) { inclusive = true }
                     }
