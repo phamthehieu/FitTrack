@@ -12,6 +12,7 @@ import com.example.fittrack.data.security.SecureAuthStorage
 import com.example.fittrack.ui.screens.auth.login.LoginScreen
 import com.example.fittrack.ui.screens.auth.register.RegisterScreen
 import com.example.fittrack.ui.screens.home.HomeScreen
+import com.example.fittrack.ui.screens.splash.SplashScreen
 import com.example.fittrack.ui.theme.ThemeMode
 import com.google.firebase.auth.FirebaseAuth
 
@@ -29,9 +30,23 @@ fun FitTrackNavHost(
 
     NavHost(
         navController = navController,
-        startDestination = FitTrackRoutes.LOGIN_ROUTE,
+        startDestination = FitTrackRoutes.SPLASH,
         modifier = modifier,
     ) {
+        composable(FitTrackRoutes.SPLASH) {
+            SplashScreen(
+                onNavigateToHome = {
+                    navController.navigate(FitTrackRoutes.HOME) {
+                        popUpTo(FitTrackRoutes.SPLASH) { inclusive = true }
+                    }
+                },
+                onNavigateToLogin = {
+                    navController.navigate(FitTrackRoutes.loginRoute()) {
+                        popUpTo(FitTrackRoutes.SPLASH) { inclusive = true }
+                    }
+                },
+            )
+        }
         composable(
             route = FitTrackRoutes.LOGIN_ROUTE,
             arguments = listOf(
@@ -41,6 +56,7 @@ fun FitTrackNavHost(
             val prefillEmail = backStackEntry.arguments?.getString("email").orEmpty()
             LoginScreen(
                 currentThemeMode = currentThemeMode,
+                currentLanguageTag = currentLanguageTag,
                 onToggleTheme = {
                     val next = when (currentThemeMode) {
                         ThemeMode.SYSTEM -> ThemeMode.DARK

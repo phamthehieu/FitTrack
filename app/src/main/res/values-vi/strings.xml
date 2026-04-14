@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">FitTrack</string>
+    <string name="splash_tagline">Tiếp tục hành trình vận động của bạn.</string>
 
     <!-- Auth / Login -->
     <string name="login_title">Chào mừng trở lại</string>

@@ -2,5 +2,16 @@
 <resources>
 
     <!-- AppCompat required because MainActivity extends AppCompatActivity (for per-app language switching). -->
-    <style name="Theme.FitTrack" parent="Theme.AppCompat.DayNight.NoActionBar" />
+    <style name="Theme.FitTrack" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- Nền cửa sổ khớp app; hữu ích khi có recreate (đổi theme hệ thống, v.v.). -->
+        <item name="android:windowBackground">@color/fit_window_background</item>
+        <item name="android:colorBackground">@color/fit_window_background</item>
+    </style>
+
+    <!-- Cold start (API 31+ animation; API cũ vẫn có nền + icon). -->
+    <style name="Theme.FitTrack.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/fit_splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.FitTrack</item>
+    </style>
 </resources>

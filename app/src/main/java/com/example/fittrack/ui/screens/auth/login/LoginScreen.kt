@@ -24,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.Brightness7
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -54,6 +53,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -116,9 +117,20 @@ private fun firebaseAuthErrorToViMessage(e: Exception): String {
     return if (!code.isNullOrBlank()) "$normalized (Mã lỗi: $code)" else normalized
 }
 
+/** Cờ hiển thị theo locale app (en ↔ vi). */
+private fun languageTagToFlagEmoji(languageTag: String): String {
+    val base = languageTag.lowercase().substringBefore('-').substringBefore('_')
+    return when (base) {
+        "vi" -> "🇻🇳"
+        "en" -> "🇺🇸"
+        else -> "🌐"
+    }
+}
+
 @Composable
 fun LoginScreen(
     currentThemeMode: ThemeMode = ThemeMode.SYSTEM,
+    currentLanguageTag: String = "en",
     onToggleTheme: () -> Unit = {},
     onToggleLanguage: () -> Unit = {},
     onLoginSuccess: () -> Unit = {},
@@ -301,6 +313,7 @@ fun LoginScreen(
                )
 
                Row(verticalAlignment = Alignment.CenterVertically) {
+                   val languageToggleLabel = stringResource(id = R.string.login_toggle_language)
                    IconButton(
                        onClick = {
                            showTransitionOverlay = true
@@ -309,35 +322,35 @@ fun LoginScreen(
                                delay(350)
                                showTransitionOverlay = false
                            }
-                       }
+                       },
+                       modifier = Modifier.semantics { contentDescription = languageToggleLabel },
                    ) {
-                       Icon(
-                           imageVector = Icons.Filled.Language,
-                           contentDescription = stringResource(id = R.string.login_toggle_language),
-                           tint = colorScheme.primary,
+                       Text(
+                           text = languageTagToFlagEmoji(currentLanguageTag),
+                           fontSize = 22.sp,
                        )
                    }
 
-                   IconButton(
-                       onClick = {
-                           showTransitionOverlay = true
-                           scope.launch {
-                               onToggleTheme()
-                               delay(220)
-                               showTransitionOverlay = false
-                           }
-                       }
-                   ) {
-                       Icon(
-                           imageVector = if (currentThemeMode == ThemeMode.DARK) {
-                               Icons.Filled.Brightness7
-                           } else {
-                               Icons.Filled.Brightness4
-                           },
-                           contentDescription = stringResource(id = R.string.login_toggle_theme),
-                           tint = colorScheme.primary,
-                       )
-                   }
+//                   IconButton(
+//                       onClick = {
+//                           showTransitionOverlay = true
+//                           scope.launch {
+//                               onToggleTheme()
+//                               delay(220)
+//                               showTransitionOverlay = false
+//                           }
+//                       }
+//                   ) {
+//                       Icon(
+//                           imageVector = if (currentThemeMode == ThemeMode.DARK) {
+//                               Icons.Filled.Brightness7
+//                           } else {
+//                               Icons.Filled.Brightness4
+//                           },
+//                           contentDescription = stringResource(id = R.string.login_toggle_theme),
+//                           tint = colorScheme.primary,
+//                       )
+//                   }
                }
            }
 

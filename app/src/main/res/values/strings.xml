@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">FitTrack</string>
+    <string name="splash_tagline">Fuel your body. Own your shape.</string>
 
     <!-- Auth / Login -->
     <string name="login_title">Welcome back</string>

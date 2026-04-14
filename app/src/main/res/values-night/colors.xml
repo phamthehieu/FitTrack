@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Khớp FitBackgroundDark -->
+    <color name="fit_window_background">#FF0F172A</color>
+    <color name="fit_splash_background">#FF0F172A</color>
+</resources>
