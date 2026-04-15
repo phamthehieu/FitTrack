@@ -19,40 +19,12 @@ import com.example.fittrack.ui.theme.ThemeMode
 
 @Composable
 fun HomeScreen(
-    currentThemeMode: ThemeMode = ThemeMode.SYSTEM,
-    onThemeModeChange: (ThemeMode) -> Unit = {},
-    onLogout: () -> Unit = {},
 ) {
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(text = stringResource(id = R.string.home_title))
-            Text(text = stringResource(id = R.string.home_theme_label, currentThemeMode.name))
-            Button(onClick = { onThemeModeChange(ThemeMode.SYSTEM) }) {
-                Text(stringResource(id = R.string.home_theme_system))
-            }
-            Button(onClick = { onThemeModeChange(ThemeMode.LIGHT) }) {
-                Text(stringResource(id = R.string.home_theme_light))
-            }
-            Button(onClick = { onThemeModeChange(ThemeMode.DARK) }) {
-                Text(stringResource(id = R.string.home_theme_dark))
-            }
-            Button(onClick = onLogout) {
-                Text(stringResource(id = R.string.home_logout))
-            }
-        }
-    }
+
 }
 
 @Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun HomeScreenPreview() {
     FitTrackTheme {

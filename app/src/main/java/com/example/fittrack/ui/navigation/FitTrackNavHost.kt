@@ -117,16 +117,6 @@ fun FitTrackNavHost(
         }
         composable(FitTrackRoutes.HOME) {
             HomeScreen(
-                currentThemeMode = currentThemeMode,
-                onThemeModeChange = onThemeModeChange,
-                onLogout = {
-                    FirebaseAuth.getInstance().signOut()
-                    secureAuthStorage.clearCredentials()
-                    scope.launch { onboardingPreferences.setCompleted(false) }
-                    navController.navigate(FitTrackRoutes.loginRoute()) {
-                        popUpTo(FitTrackRoutes.HOME) { inclusive = true }
-                    }
-                },
             )
         }
     }
