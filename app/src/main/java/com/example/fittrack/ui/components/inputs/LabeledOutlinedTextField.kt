@@ -35,6 +35,7 @@ fun LabeledOutlinedTextField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     leadingIcon: ImageVector? = null,
+    suffix: @Composable (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     textFieldModifier: Modifier = Modifier.fillMaxWidth(),
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
@@ -73,6 +74,7 @@ fun LabeledOutlinedTextField(
                     )
                 }
             },
+            suffix = suffix,
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
             shape = RoundedCornerShape(percent = 50),

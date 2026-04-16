@@ -96,7 +96,9 @@
     <string name="onboarding_gender_female">Nữ</string>
     <string name="onboarding_gender_other">Khác</string>
     <string name="onboarding_height_label">Chiều cao</string>
+    <string name="onboarding_height_unit_suffix">cm</string>
     <string name="onboarding_weight_label">Cân nặng</string>
+    <string name="onboarding_weight_unit_suffix">kg</string>
 
     <string name="onboarding_activity_level_title">MỨC ĐỘ VẬN ĐỘNG</string>
     <string name="onboarding_activity_sedentary_label">Ít vận động</string>

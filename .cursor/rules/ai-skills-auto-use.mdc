@@ -1,0 +1,27 @@
+---
+description: Tự động tra cứu và áp dụng playbook trong .ai/skills khi người dùng hỏi các chủ đề liên quan
+alwaysApply: true
+---
+
+## Auto-use `.ai/skills` (playbooks)
+
+Khi USER hỏi các chủ đề sau, hãy **ưu tiên** tìm và đọc `SKILL.md` phù hợp trong `.ai/skills/` trước khi trả lời hoặc triển khai code:
+
+- **Android build / Gradle / AGP / Kotlin / KSP / kapt / buildConfig / libs.versions.toml**
+- **Jetpack Compose migration** (XML → Compose, theme → Compose, interoperability)
+- **Navigation** (đặc biệt Navigation 3 / type-safe destinations)
+- **Edge-to-edge / system bars**
+- **Performance / R8 analyzer / Proguard rules**
+- **Google Play** (Play Billing upgrade, release notes, migration)
+
+### Cách chọn skill
+
+- Chọn skill có **đường dẫn** và **tiêu đề** khớp nhất với yêu cầu.
+- Nếu có nhiều skill liên quan, ưu tiên skill **cụ thể** nhất (ví dụ: `agp-9-upgrade` hơn là `build`).
+- Nếu không có skill phù hợp, trả lời/triển khai theo best-practices bình thường.
+
+### Quy tắc khi áp dụng skill
+
+- Đọc `SKILL.md` trước, sau đó đọc các file trong `references/` mà `SKILL.md` nhắc tới.
+- Khi đưa ra hướng dẫn/đề xuất, bám theo checklist trong skill; không bịa bước không có trong skill nếu skill đã quy định rõ.
+- Khi có thay đổi code/build: chạy build phù hợp (`gradlew ...`) và sửa lỗi phát sinh theo đúng tinh thần skill.
