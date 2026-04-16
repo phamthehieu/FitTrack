@@ -8,7 +8,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.fittrack.R
 import com.example.fittrack.data.local.db.DatabaseProvider
+import com.example.fittrack.data.local.db.entities.DailySummaryEntity
 import com.example.fittrack.data.local.db.entities.UserProfileEntity
+import com.example.fittrack.data.local.db.entities.WeightLogEntity
 import com.example.fittrack.data.repository.FitTrackRepository
 import com.example.fittrack.domain.calculators.BmiCalculator
 import com.example.fittrack.domain.calculators.TdeeCalculator
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 internal fun OnboardingUiState.withAction(action: OnboardingAction): OnboardingUiState {
     return when (action) {
@@ -212,7 +215,7 @@ class OnboardingViewModel(app: Application) : AndroidViewModel(app) {
                     else -> current.withGoalTargetFromMetrics().targetWeightKg
                 }
 
-                repo.upsertUserProfile(
+                val userId = repo.upsertUserProfile(
                     UserProfileEntity(
                         name = current.fullName.trim().ifBlank { "User" },
                         gender = normalizedGender,
@@ -224,6 +227,40 @@ class OnboardingViewModel(app: Application) : AndroidViewModel(app) {
                         activityLevel = activityLevel,
                         tdee = tdee,
                         dailyCaloTarget = dailyTarget,
+                    )
+                )
+
+                // Seed dữ liệu tối thiểu cho ngày đầu: cân nặng + summary hôm nay
+                val today = LocalDate.now()
+                if (startWeightKg != null && startWeightKg > 0.0) {
+                    val bmi = if (heightCm != null && heightCm > 0.0) {
+                        BmiCalculator.calculate(
+                            heightCm = heightCm.toFloat(),
+                            weightKg = startWeightKg.toFloat(),
+                        ).takeIf { it > 0f }?.toDouble()
+                    } else null
+
+                    repo.upsertWeightLog(
+                        WeightLogEntity(
+                            userId = userId,
+                            logDate = today,
+                            weightKg = startWeightKg,
+                            bmi = bmi,
+                            note = null,
+                        )
+                    )
+                }
+
+                repo.upsertDailySummary(
+                    DailySummaryEntity(
+                        userId = userId,
+                        summaryDate = today,
+                        totalCalories = 0.0,
+                        totalProtein = 0.0,
+                        totalCarb = 0.0,
+                        totalFat = 0.0,
+                        weightKg = startWeightKg,
+                        caloDeficit = 0.0,
                     )
                 )
 

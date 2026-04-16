@@ -14,6 +14,7 @@ import com.example.fittrack.data.security.SecureAuthStorage
 import com.example.fittrack.ui.screens.auth.login.LoginScreen
 import com.example.fittrack.ui.screens.auth.register.RegisterScreen
 import com.example.fittrack.ui.screens.home.HomeScreen
+import com.example.fittrack.ui.screens.main.MainScreen
 import com.example.fittrack.ui.screens.onboarding.OnBoardingScreen
 import com.example.fittrack.ui.screens.splash.SplashScreen
 import com.example.fittrack.ui.theme.ThemeMode
@@ -45,7 +46,7 @@ fun FitTrackNavHost(
                 onNavigateToHome = {
                     scope.launch {
                         val completed = onboardingPreferences.completed.first()
-                        navController.navigate(if (completed) FitTrackRoutes.HOME else FitTrackRoutes.ONBOARDING) {
+                        navController.navigate(if (completed) FitTrackRoutes.MAIN else FitTrackRoutes.ONBOARDING) {
                             popUpTo(FitTrackRoutes.SPLASH) { inclusive = true }
                         }
                     }
@@ -73,7 +74,7 @@ fun FitTrackNavHost(
                 onLoginSuccess = {
                     scope.launch {
                         val completed = onboardingPreferences.completed.first()
-                        navController.navigate(if (completed) FitTrackRoutes.HOME else FitTrackRoutes.ONBOARDING) {
+                        navController.navigate(if (completed) FitTrackRoutes.MAIN else FitTrackRoutes.ONBOARDING) {
                             popUpTo(FitTrackRoutes.LOGIN_ROUTE) { inclusive = true }
                         }
                     }
@@ -98,7 +99,7 @@ fun FitTrackNavHost(
                 onFinished = {
                     scope.launch {
                         onboardingPreferences.setCompleted(true)
-                        navController.navigate(FitTrackRoutes.HOME) {
+                        navController.navigate(FitTrackRoutes.MAIN) {
                             popUpTo(FitTrackRoutes.ONBOARDING) { inclusive = true }
                             launchSingleTop = true
                         }
@@ -114,6 +115,9 @@ fun FitTrackNavHost(
                     }
                 },
             )
+        }
+        composable(FitTrackRoutes.MAIN) {
+            MainScreen()
         }
         composable(FitTrackRoutes.HOME) {
             HomeScreen(

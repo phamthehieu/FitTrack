@@ -351,7 +351,10 @@ private fun OnBoardingScreenContent(
                         modifier = Modifier.weight(1f),
                         label = stringResource(id = R.string.onboarding_age_label),
                         value = state.age,
-                        onValueChange = { onAction(OnboardingAction.AgeChanged(it)) },
+                        onValueChange = {
+                            val digitsOnly = it.filter(Char::isDigit).take(3)
+                            onAction(OnboardingAction.AgeChanged(digitsOnly))
+                        },
                         placeholder = "",
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     )
@@ -393,6 +396,7 @@ private fun OnBoardingScreenContent(
                         value = state.heightCmText,
                         onValueChange = { onAction(OnboardingAction.HeightChanged(it)) },
                         placeholder = "",
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         leadingIcon = Icons.Filled.Height,
                         suffix = {
                             Text(
@@ -409,6 +413,7 @@ private fun OnBoardingScreenContent(
                         value = state.weightKgText,
                         onValueChange = { onAction(OnboardingAction.WeightChanged(it)) },
                         placeholder = "",
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         leadingIcon = Icons.Filled.MonitorWeight,
                         suffix = {
                             Text(
@@ -417,6 +422,7 @@ private fun OnBoardingScreenContent(
                                 color = extras.textMuted,
                             )
                         },
+
                     )
                 }
 

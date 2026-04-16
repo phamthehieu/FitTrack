@@ -213,9 +213,17 @@ fun LoginScreen(
             autoLoginAttempted = true
 
             val currentUser = auth?.currentUser
-            if (currentUser != null && currentUser.isEmailVerified) {
-                onLoginSuccess()
-                return@LaunchedEffect
+            if (currentUser != null) {
+                try {
+                    currentUser.reload().await()
+                    val refreshed = auth.currentUser
+                    if (refreshed != null && refreshed.isEmailVerified) {
+                        onLoginSuccess()
+                        return@LaunchedEffect
+                    }
+                } catch (_: Exception) {
+                    auth.signOut()
+                }
             }
 
             val cred = secureAuthStorage.getCredentials() ?: return@LaunchedEffect
